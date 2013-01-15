@@ -1,0 +1,5 @@
+[
+    {   "caption": "JavaC: Compile Current File",
+        "command": "compile_current_file"
+    }
+]

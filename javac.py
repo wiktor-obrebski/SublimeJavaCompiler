@@ -40,16 +40,16 @@ class CompileCurrentProjectCommand(CommandBase):
     def generate_base_config(self, target_dir):
         target_path = os.path.join(target_dir, project_config_filename)
 
-        config = {
-            "project_name"      : "HelloWorld",
-            "output_directory"  : "output",
-            "sources_directory" : "src",
-
-            "entry_file"        : "Test/HelloWorld.java",
-            "entry_point"       : "Test.HelloWorld"
-        }
         _file = open(target_path, 'w')
-        json.dump(config, _file, indent=4)
+        _file.write("""{
+    "project_name"      : "HelloWorld",
+    "output_directory"  : "output",
+    "sources_directory" : "src",
+
+    "entry_file"        : "Test/HelloWorld.java",
+    "entry_point"       : "Test.HelloWorld"
+}"""    )
+        #json.dump(config, _file, indent=4, separators=(',', '\t\t:\t'))
         _file.close()
         self.output.close()
         self.view.window().open_file(target_path)

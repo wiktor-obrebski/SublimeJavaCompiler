@@ -1,0 +1,5 @@
+{
+    "java_path" : "java",
+    "javac_path": "javac",
+    "jar_path"  : "jar"
+}

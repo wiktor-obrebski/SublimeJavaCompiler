@@ -1,5 +1,14 @@
 [
-    {   "caption": "JavaC: Compile Current File",
+    {
+        "caption": "JavaC: Compile Current File",
         "command": "compile_current_file"
+    },
+    {
+        "caption": "JavaC: Compile&Run Current File",
+        "command": "compile_and_run_current_file"
+    },
+    {
+        "caption": "JavaC: Compile Project",
+        "command": "compile_current_project"
     }
 ]

@@ -1,5 +1,6 @@
 {
     "java_path" : "java",
     "javac_path": "javac",
-    "jar_path"  : "jar"
+    "jar_path"  : "jar",
+    "hide_output_after_compilation": false
 }

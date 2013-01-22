@@ -37,6 +37,23 @@ class CompileCurrentProjectCommand(CommandBase):
         self.entry_point = settings.get('entry_point', 'Namespace.EntryPointClass')
         self.entry_file  = settings.get('entry_file', 'Namespace/EntryPointClass.java')
 
+    def generate_base_config(self, target_dir):
+        target_path = os.path.join(target_dir, project_config_filename)
+
+        config = {
+            "project_name"      : "HelloWorld",
+            "output_directory"  : "output",
+            "sources_directory" : "src",
+
+            "entry_file"        : "Test/HelloWorld.java",
+            "entry_point"       : "Test.HelloWorld"
+        }
+        _file = open(target_path, 'w')
+        json.dump(config, _file, indent=4)
+        _file.close()
+        self.output.close()
+        self.view.window().open_file(target_path)
+
 
     def init(self):
         self.view.run_command('save')
@@ -56,7 +73,23 @@ class CompileCurrentProjectCommand(CommandBase):
             output.writeLine("Found more than one '%s' file. Can not continue." % project_config_filename)
             return False
         if len(files) == 0:
-            output.writeLine("Can not found anyone '%s' file. Can not continue." % project_config_filename)
+            def show_folders(result):
+                if result == 1:
+                    self.output.close()
+                    return
+                if len(dirs) > 1:
+                    def choose(result):
+                        self.generate_base_config(dirs[result])
+                    _list = [[os.path.basename(_dir), _dir] for _dir in dirs]
+                    window.show_quick_panel(_list, choose)
+                else:
+                    self.generate_base_config(dirs[0])
+            options = [
+                ['Generate new configuration.', 'Generate new java project file configuration.'],
+                ['Cancel', 'Abandon compilation.']
+            ]
+            window.show_quick_panel(options, show_folders)
+
             return False
 
         self.load_config(files[0])
@@ -132,8 +165,6 @@ class CompileCurrentProjectCommand(CommandBase):
         if self.init():
             thread.start_new_thread(self.compile_project, ())
 
-        #self.output.close()
-
 class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
     def run(self, edit):
         if self.init():
@@ -164,6 +195,7 @@ class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
 
     def compile_and_run(self):
         self.compile()
+        self.pack_jar()
         self.run_jar()
         if sget('hide_output_after_compilation', True):
             self.output.close()

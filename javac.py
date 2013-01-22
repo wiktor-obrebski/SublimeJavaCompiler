@@ -8,6 +8,41 @@ settings = sublime.load_settings("Preferences.sublime-settings")
 sget     = settings.get
 project_config_filename = "settings.sublime-javac"
 
+class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
+    def run(self, edit):
+        if self.init():
+            thread.start_new_thread(self.compile_and_run, ())
+
+    def run_jar(self):
+        try:
+            output = self.output
+
+            proc = subprocess.Popen(
+                 [ sget('java_path', 'java'),
+                   '-jar', self.output_jar_file ],
+                 cwd = self.build_dist_folder,
+                 stdout = subprocess.PIPE,
+                 stderr = subprocess.PIPE
+            )
+
+            if proc.stdout:
+                output.readStdOut(proc)
+            if proc.stderr:
+                output.readStdErr(proc)
+
+            proc.wait()
+
+            output.lazy_write_line("------------%s Run------------" % self.project_name)
+
+
+        except Exception, e:
+            msg = "Error: %s" % e
+            output.write(msg)
+
+    def compile_and_run(self):
+        self.compile()
+        self.run_jar()
+
 class CompileCurrentProjectCommand(sublime_plugin.TextCommand):
     def load_config(self, project_config_path):
 
@@ -26,7 +61,9 @@ class CompileCurrentProjectCommand(sublime_plugin.TextCommand):
 
         build_path  = clear_path(settings.get('output_directory', 'output'))
         self.build_classes_path = os.path.join(build_path,'build/classes')
-        self.build_dist_path    = os.path.join(build_path,'dist')
+
+        self.build_dist_folder    = os.path.join(build_path,'dist')
+        self.output_jar_file = '.'.join([self.project_name, 'jar'])
 
         self.entry_point = settings.get('entry_point', 'Namespace.EntryPointClass')
         self.entry_file  = settings.get('entry_file', 'Namespace/EntryPointClass.java')
@@ -62,9 +99,7 @@ class CompileCurrentProjectCommand(sublime_plugin.TextCommand):
         try:
             output = self.output
 
-            output_name = '.'.join([self.project_name, 'jar'])
-            output_path = os.path.join(self.build_dist_path, output_name)
-
+            output_path = os.path.join(self.build_dist_folder, self.output_jar_file)
             proc = subprocess.Popen(
                  [ sget('jar_path', 'jar'),
                    'cfe',

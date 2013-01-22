@@ -32,9 +32,6 @@ class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
 
             proc.wait()
 
-            output.lazy_write_line("------------%s Run------------" % self.project_name)
-
-
         except Exception, e:
             msg = "Error: %s" % e
             output.write(msg)
@@ -42,6 +39,8 @@ class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
     def compile_and_run(self):
         self.compile()
         self.run_jar()
+        if sget('hide_output_after_compilation', True):
+            self.output.close()
 
 class CompileCurrentProjectCommand(sublime_plugin.TextCommand):
     def load_config(self, project_config_path):
@@ -121,12 +120,15 @@ class CompileCurrentProjectCommand(sublime_plugin.TextCommand):
 
             output.lazy_write_line("------------Packing jar end------------")
 
-            # if sget('hide_output_after_compilation', True):
-            #     output.close()
-
         except Exception, e:
             msg = "Error: %s" % e
             self.output.write(msg)
+
+    def compile_project(self):
+        self.compile()
+        self.pack_jar()
+        if sget('hide_output_after_compilation', True):
+            self.output.close()
 
     def compile(self):
         try:
@@ -151,10 +153,6 @@ class CompileCurrentProjectCommand(sublime_plugin.TextCommand):
 
             output.lazy_write_line("------------Compilation end------------")
 
-            self.pack_jar()
-            # if sget('hide_output_after_compilation', True):
-            #     output.close()
-
         except Exception, e:
             msg = "Error: %s" % e
             self.output.write(msg)
@@ -162,7 +160,7 @@ class CompileCurrentProjectCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         if self.init():
-            thread.start_new_thread(self.compile, ())
+            thread.start_new_thread(self.compile_project, ())
 
         #self.output.close()
 

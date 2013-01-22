@@ -8,41 +8,11 @@ settings = sublime.load_settings("Preferences.sublime-settings")
 sget     = settings.get
 project_config_filename = "settings.sublime-javac"
 
-class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
-    def run(self, edit):
-        if self.init():
-            thread.start_new_thread(self.compile_and_run, ())
+class CommandBase(sublime_plugin.TextCommand):
+    pass
 
-    def run_jar(self):
-        try:
-            output = self.output
 
-            proc = subprocess.Popen(
-                 [ sget('java_path', 'java'),
-                   '-jar', self.output_jar_file ],
-                 cwd = self.build_dist_folder,
-                 stdout = subprocess.PIPE,
-                 stderr = subprocess.PIPE
-            )
-
-            if proc.stdout:
-                output.readStdOut(proc)
-            if proc.stderr:
-                output.readStdErr(proc)
-
-            proc.wait()
-
-        except Exception, e:
-            msg = "Error: %s" % e
-            output.write(msg)
-
-    def compile_and_run(self):
-        self.compile()
-        self.run_jar()
-        if sget('hide_output_after_compilation', True):
-            self.output.close()
-
-class CompileCurrentProjectCommand(sublime_plugin.TextCommand):
+class CompileCurrentProjectCommand(CommandBase):
     def load_config(self, project_config_path):
 
         def clear_path(path, ):
@@ -118,7 +88,7 @@ class CompileCurrentProjectCommand(sublime_plugin.TextCommand):
 
             proc.wait()
 
-            output.lazy_write_line("------------Packing jar end------------")
+            output.writeLine("------------Packing jar end------------")
 
         except Exception, e:
             msg = "Error: %s" % e
@@ -164,7 +134,41 @@ class CompileCurrentProjectCommand(sublime_plugin.TextCommand):
 
         #self.output.close()
 
-class CompileCurrentFileCommand(sublime_plugin.TextCommand):
+class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
+    def run(self, edit):
+        if self.init():
+            thread.start_new_thread(self.compile_and_run, ())
+
+    def run_jar(self):
+        try:
+            output = self.output
+
+            proc = subprocess.Popen(
+                 [ sget('java_path', 'java'),
+                   '-jar', self.output_jar_file ],
+                 cwd = self.build_dist_folder,
+                 stdout = subprocess.PIPE,
+                 stderr = subprocess.PIPE
+            )
+
+            if proc.stdout:
+                output.readStdOut(proc)
+            if proc.stderr:
+                output.readStdErr(proc)
+
+            proc.wait()
+
+        except Exception, e:
+            msg = "Error: %s" % e
+            output.write(msg)
+
+    def compile_and_run(self):
+        self.compile()
+        self.run_jar()
+        if sget('hide_output_after_compilation', True):
+            self.output.close()
+
+class CompileCurrentFileCommand(CommandBase):
     def init(self):
         self.view.run_command('save')
 

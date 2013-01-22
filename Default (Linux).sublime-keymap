@@ -1,3 +1,4 @@
 [
-    { "keys": ["f5"], "command": "compile_and_run_current_project" }
+    { "keys": ["f5"], "command": "compile_and_run_current_project" },
+    { "keys": ["f6"], "command": "compile_current_project" }
 ]

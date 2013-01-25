@@ -1,15 +1,101 @@
-import sublime, sublime_plugin
-import thread, subprocess, os
-import functools
 import sublime
+import sublime_plugin
+import thread
+import subprocess
+import os
 import json
+import functools
 
 settings = sublime.load_settings("Preferences.sublime-settings")
-sget     = settings.get
+sget = settings.get
 project_config_filename = "settings.sublime-javac"
 
+
+class OutputWindow(object):
+    def __init__(self, window, name='composer'):
+        self.window = window
+        self.name = name
+        self.outputWindow = None
+
+    def readStdOut(self, proc):
+        while True:
+            data = os.read(proc.stdout.fileno(), 2 ** 15)
+            if "" == data:
+                proc.stdout.close()
+                break
+            else:
+                sublime.set_timeout(functools.partial(self.write, data), 0)
+    def readStdErr(self, proc):
+        has_errors = False
+        while True:
+            data = os.read(proc.stderr.fileno(), 2 ** 15)
+            if "" == data:
+                proc.stderr.close()
+                # self.appendData("\n--- Execution Finished ---")
+                #
+                return has_errors
+            else:
+                sublime.set_timeout(functools.partial(self.write, data), 0)
+                has_errors = True
+
+    def _getOutputWindow(self):
+        if (None is self.outputWindow):
+            self.outputWindow = self.window.get_output_panel(self.name)
+            self.clear()
+
+        return self.outputWindow
+
+    def show(self):
+        self._getOutputWindow()
+        self.window.run_command("show_panel", {"panel": "output." + self.name})
+
+    def close(self):
+        outputWindow = self._getOutputWindow()
+        self.window.run_command("hide_panel", {"panel": "output." + self.name, "cancel": True})
+
+    def clear(self):
+        outputWindow = self._getOutputWindow()
+        outputWindow.set_read_only(False)
+        edit = outputWindow.begin_edit()
+        outputWindow.erase(edit, sublime.Region(0, outputWindow.size()))
+        outputWindow.end_edit(edit)
+        outputWindow.set_read_only(True)
+
+    def write(self, text, new_line=True):
+        """ Thread-safe writing text to console and adding new line.
+        """
+        sublime.set_timeout(functools.partial(self._plain_write, text, new_line), 1)
+
+    def _plain_write(self, data, new_line=True):
+        str = data.decode("utf-8")
+        str = str.replace('\r\n', '\n').replace('\r', '\n')
+        if new_line: str += '\n'
+        outputWindow = self._getOutputWindow()
+
+        # selection_was_at_end = (len(self.output_view.sel()) == 1
+        #  and self.output_view.sel()[0]
+        #    == sublime.Region(self.output_view.size()))
+        self.outputWindow.set_read_only(False)
+        edit = outputWindow.begin_edit()
+        outputWindow.insert(edit, outputWindow.size(), str)
+        #if selection_was_at_end:
+        #outputWindow.show(outputWindow.size())
+        outputWindow.end_edit(edit)
+        outputWindow.set_read_only(True)
+
+
 class CommandBase(sublime_plugin.TextCommand):
-    pass
+    def __init__(self):
+        self.view.run_command('save')
+
+    def write(self, text):
+        self.output()
+
+    def output(self):
+        if None is self._output:
+            self._output = OutputWindow(self.view.window())
+            self._output.show()
+        return self._output
 
 
 class CompileCurrentProjectCommand(CommandBase):
@@ -37,23 +123,6 @@ class CompileCurrentProjectCommand(CommandBase):
         self.entry_point = settings.get('entry_point', 'Namespace.EntryPointClass')
         self.entry_file  = settings.get('entry_file', 'Namespace/EntryPointClass.java')
 
-    def generate_base_config(self, target_dir):
-        target_path = os.path.join(target_dir, project_config_filename)
-
-        _file = open(target_path, 'w')
-        _file.write("""{
-    "project_name"      : "HelloWorld",
-    "output_directory"  : "output",
-    "sources_directory" : "src",
-
-    "entry_file"        : "Test/HelloWorld.java",
-    "entry_point"       : "Test.HelloWorld"
-}"""    )
-        #json.dump(config, _file, indent=4, separators=(',', '\t\t:\t'))
-        _file.close()
-        self.output.close()
-        self.view.window().open_file(target_path)
-
 
     def init(self):
         self.view.run_command('save')
@@ -73,23 +142,7 @@ class CompileCurrentProjectCommand(CommandBase):
             output.writeLine("Found more than one '%s' file. Can not continue." % project_config_filename)
             return False
         if len(files) == 0:
-            def show_folders(result):
-                if result == 1:
-                    self.output.close()
-                    return
-                if len(dirs) > 1:
-                    def choose(result):
-                        self.generate_base_config(dirs[result])
-                    _list = [[os.path.basename(_dir), _dir] for _dir in dirs]
-                    window.show_quick_panel(_list, choose)
-                else:
-                    self.generate_base_config(dirs[0])
-            options = [
-                ['Generate new configuration.', 'Generate new java project file configuration.'],
-                ['Cancel', 'Abandon compilation.']
-            ]
-            window.show_quick_panel(options, show_folders)
-
+            output.writeLine("Can not found anyone '%s' file. Can not continue." % project_config_filename)
             return False
 
         self.load_config(files[0])
@@ -165,6 +218,8 @@ class CompileCurrentProjectCommand(CommandBase):
         if self.init():
             thread.start_new_thread(self.compile_project, ())
 
+        #self.output.close()
+
 class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
     def run(self, edit):
         if self.init():
@@ -195,7 +250,6 @@ class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
 
     def compile_and_run(self):
         self.compile()
-        self.pack_jar()
         self.run_jar()
         if sget('hide_output_after_compilation', True):
             self.output.close()
@@ -280,87 +334,3 @@ class CompileAndRunCurrentFileCommand(CompileCurrentFileCommand):
         self.init()
         thread.start_new_thread(self.compile_and_run, ())
 
-
-class OutputWindow(object):
-    def __init__(self, window, name = 'composer'):
-        self.window       = window
-        self.name         = name
-        self.outputWindow = None
-        self.enabled      = 1
-
-    def readStdOut(self, proc):
-        while True:
-            data = os.read(proc.stdout.fileno(), 2 ** 15)
-            if "" == data :
-                proc.stdout.close()
-                break
-            else:
-                sublime.set_timeout(functools.partial(self.write, data), 0)
-
-    def readStdErr(self, proc):
-        has_errors = False
-        while True:
-            data = os.read(proc.stderr.fileno(), 2 ** 15)
-            if "" == data :
-                proc.stderr.close()
-                # self.appendData("\n--- Execution Finished ---")
-                #
-                return has_errors
-            else:
-                sublime.set_timeout(functools.partial(self.write, data), 0)
-                has_errors = True
-
-    def setEnabled(self, bool):
-        self.enabled = bool
-
-    def close(self):
-        outputWindow = self.getOutputWindow()
-        self.window.run_command("hide_panel", {"panel": "output." + self.name, "cancel": True})
-
-    def getOutputWindow(self):
-        if (None is self.outputWindow):
-            self.outputWindow = self.window.get_output_panel(self.name)
-            self.clear()
-
-        return self.outputWindow
-
-    def show(self):
-        if self.enabled is False:
-            return
-
-        self.getOutputWindow()
-        self.window.run_command("show_panel", {"panel": "output." + self.name})
-
-    def clear(self):
-        outputWindow = self.getOutputWindow()
-        outputWindow.set_read_only(False)
-        edit = outputWindow.begin_edit()
-        outputWindow.erase(edit, sublime.Region(0, outputWindow.size()))
-        outputWindow.end_edit(edit)
-        outputWindow.set_read_only(True)
-
-    def lazy_write_line(self, text):
-        sublime.set_timeout(functools.partial(self.writeLine, text), 0)
-
-    def writeLine(self, data):
-        self.write(data + '\n')
-
-    def write(self, data):
-        if self.enabled is False :
-            return
-
-        str = data.decode("utf-8")
-        str = str.replace('\r\n', '\n').replace('\r', '\n')
-        outputWindow = self.getOutputWindow()
-        self.show()
-
-        # selection_was_at_end = (len(self.output_view.sel()) == 1
-        #  and self.output_view.sel()[0]
-        #    == sublime.Region(self.output_view.size()))
-        self.outputWindow.set_read_only(False)
-        edit = outputWindow.begin_edit()
-        outputWindow.insert(edit, outputWindow.size(), str)
-        #if selection_was_at_end:
-        outputWindow.show(outputWindow.size())
-        outputWindow.end_edit(edit)
-        outputWindow.set_read_only(True)

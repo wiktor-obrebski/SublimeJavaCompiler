@@ -2,6 +2,9 @@ import sublime, sublime_plugin
 import threading, subprocess, functools
 import os
 
+settings = sublime.load_settings("Preferences.sublime-settings")
+sget = settings.get
+
 def invoke(callback, *args, **kwargs):
     # sublime.set_timeout gets used to send things onto the main thread
     # most sublime.[something] calls need to be on the main thread
@@ -31,7 +34,7 @@ class OutputWindow(object):
     def close(self):
         def _close(self):
             outputWindow = self._getOutputWindow()
-            self.window.run_command("hide_panel", {"panel": "output." + self.name, "cancel": True})
+            #self.window.run_command("hide_panel", {"panel": "output." + self.name, "cancel": True})
         invoke(_close, self)
 
     def clear(self):
@@ -51,7 +54,7 @@ class OutputWindow(object):
 
             str = data.decode("utf-8")
             str = str.replace('\r\n', '\n').replace('\r', '\n')
-            if new_line: str += '\n'
+            if new_line and not str.endswith('\n'): str += '\n'
 
             # selection_was_at_end = (len(self.output_view.sel()) == 1
             #  and self.output_view.sel()[0]
@@ -80,16 +83,34 @@ class CommandBase(sublime_plugin.TextCommand):
             self._output.show()
         return self._output
 
-    def call_new_thread(self, cmd, on_done=None, *args, **kwargs):
-        def _done(self, has_errors):
-            if not has_errors:
-                self.output().close()
-            on_done(has_errors)
-        thread = JavaCThread('java', _done, self.write, args, kwargs)
+    def call_new_thread_chain(self, orders_list):
+        """ Calling all cmd in "orders_list" array, after last
+        close output wnd, if no errors
+        """
+        def _callback(has_errors):
+            if has_errors: return
+
+            if _callback.counter >= len(orders_list):
+                if not has_errors and sget('hide_output_after_compilation', True):
+                    self.output().close()
+                return
+            cmd, working_dir = orders_list[_callback.counter]()
+            _callback.counter += 1
+
+            self.call_new_thread(cmd, _callback, working_dir)
+
+        _callback.counter = 0
+        _callback(False)
+
+
+
+    def call_new_thread(self, cmd, on_done=None, working_dir="."):
+        thread = JavaCThread(cmd, on_done, self.write, working_dir)
         thread.start()
 
 
     def run(self, edit):
+        self.output().clear()
         self.view.run_command('save')
 
 class JavaCThread(threading.Thread):
@@ -123,23 +144,21 @@ class JavaCThread(threading.Thread):
                     os.chdir(self.working_dir)
 
                 proc = subprocess.Popen(self.cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
                     shell=shell,
-                    universal_newlines=True
+                    universal_newlines=True,
+                    stderr=subprocess.STDOUT,
+                    stdout=subprocess.PIPE
                 )
 
+                last_line = None
                 for line in iter(proc.stdout.readline, ''):
+                    last_line = line
                     log(line)
-
                 proc.stdout.close()
 
                 has_errors = False
-                for line in iter(proc.stderr.readline, ''):
-                    has_errors = True
-                    log(line)
-
-                proc.stderr.close()
+                if last_line is not None:
+                    has_errors = 'error' in last_line
 
                 if self.on_done is not None:
                     invoke(self.on_done, has_errors)
@@ -147,24 +166,3 @@ class JavaCThread(threading.Thread):
         except subprocess.CalledProcessError, e:
             if self.on_done is not None:
                 invoke(self.on_done, e.returncode)
-
-    def readStdOut(self, proc):
-        while True:
-            data = os.read(proc.stdout.fileno(), 2 ** 15)
-            if "" == data:
-                proc.stdout.close()
-                break
-            else:
-                self.write(data)
-    def readStdErr(self, proc):
-        has_errors = False
-        while True:
-            data = os.read(proc.stderr.fileno(), 2 ** 15)
-            if "" == data:
-                proc.stderr.close()
-                # self.appendData("\n--- Execution Finished ---")
-                #
-                return has_errors
-            else:
-                self.write(data)
-                has_errors = True

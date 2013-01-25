@@ -1,11 +1,11 @@
-"""
+import sublime
 import javacbase
+import os, json
+from javacbase import sget
 
-settings = sublime.load_settings("Preferences.sublime-settings")
-sget = settings.get
 project_config_filename = "settings.sublime-javac"
 
-class CompileCurrentProjectCommand(CommandBase):
+class CompileCurrentProjectCommand(javacbase.CommandBase):
     def load_config(self, project_config_path):
 
         def clear_path(path, ):
@@ -32,213 +32,114 @@ class CompileCurrentProjectCommand(CommandBase):
 
 
     def init(self):
+        """ Looking for 'project_config_filename' file in project folders, and load
+        config from it. If it non exists, it will display menu where you can choose
+        where it should be generated.
+        """
         self.view.run_command('save')
 
-        self.output = output = OutputWindow( self.view.window() )
-
-        output.writeLine("------------Compiling project------------")
-        output.writeLine("")
-
-        output.show()
-
-        window = self.view.window()
-        dirs   = window.folders()
+        dirs   = self.view.window().folders()
         files = [os.path.join(_dir, project_config_filename) for _dir in dirs ]
         files = [_file for _file in files if os.path.exists(_file)]
         if len(files) > 1:
-            output.writeLine("Found more than one '%s' file. Can not continue." % project_config_filename)
+            self.write("Found more than one '%s' file. Can not continue." % project_config_filename)
             return False
         if len(files) == 0:
-            output.writeLine("Can not found anyone '%s' file. Can not continue." % project_config_filename)
+            self.write("Can not found anyone '%s' file. Can not continue." % project_config_filename)
             return False
 
         self.load_config(files[0])
 
         return True
 
-    def pack_jar(self):
-        #jar cfe run.jar Test.HelloWorld Test
-        try:
-            output = self.output
+    def pack_jar_order(self):
+        self.write("\n------------Packing jar------------")
+        self.write("")
 
-            output_path = os.path.join(self.build_dist_folder, self.output_jar_file)
-            proc = subprocess.Popen(
-                 [ sget('jar_path', 'jar'),
-                   'cfe',
-                   output_path,
-                   self.entry_point,
-                   '.'
-                 ],
-                 cwd = self.build_classes_path,
-                 stdout = subprocess.PIPE,
-                 stderr = subprocess.PIPE
-            )
+        output_path = os.path.join(self.build_dist_folder, self.output_jar_file)
+        jar = [
+           sget('jar_path', 'jar'),
+           'cfev',
+           output_path,
+           self.entry_point,
+           '.'
+        ]
+        cwd = self.build_classes_path
+        return (jar, cwd)
 
-            if proc.stdout:
-                output.readStdOut(proc)
-            if proc.stderr:
-                output.readStdErr(proc)
+    def compile_project_order(self):
 
-            proc.wait()
+        self.write("\n------------Compiling project------------")
+        self.write("")
 
-            output.writeLine("------------Packing jar end------------")
-
-        except Exception, e:
-            msg = "Error: %s" % e
-            self.output.write(msg)
-
-    def compile_project(self):
-        self.compile()
-        self.pack_jar()
-        if sget('hide_output_after_compilation', True):
-            self.output.close()
-
-    def compile(self):
-        try:
-            output = self.output
-
-            proc = subprocess.Popen(
-                 [ sget('javac_path', 'javac'),
-                   '-verbose',
-                   '-d', self.build_classes_path,
-                   self.entry_file ],
-                 cwd = self.src,
-                 stdout = subprocess.PIPE,
-                 stderr = subprocess.PIPE
-            )
-
-            if proc.stdout:
-                output.readStdOut(proc)
-            if proc.stderr:
-                output.readStdErr(proc)
-
-            proc.wait()
-
-            output.lazy_write_line("------------Compilation end------------")
-
-        except Exception, e:
-            msg = "Error: %s" % e
-            self.output.write(msg)
-
+        javac = [
+            sget('javac_path', 'javac'),
+            '-verbose',
+            '-d', self.build_classes_path,
+            self.entry_file
+        ]
+        return (javac, self.src)
 
     def run(self, edit):
+        javacbase.CommandBase.run(self, edit)
         if self.init():
-            thread.start_new_thread(self.compile_project, ())
+            orders = (self.compile_project_order, self.pack_jar_order)
+            self.call_new_thread_chain(orders)
 
-        #self.output.close()
 
 class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
     def run(self, edit):
+        javacbase.CommandBase.run(self, edit)
         if self.init():
-            thread.start_new_thread(self.compile_and_run, ())
-
-    def run_jar(self):
-        try:
-            output = self.output
-
-            proc = subprocess.Popen(
-                 [ sget('java_path', 'java'),
-                   '-jar', self.output_jar_file ],
-                 cwd = self.build_dist_folder,
-                 stdout = subprocess.PIPE,
-                 stderr = subprocess.PIPE
+            orders = (
+                self.compile_project_order,
+                self.pack_jar_order,
+                self.run_jar_order
             )
+            self.call_new_thread_chain(orders)
 
-            if proc.stdout:
-                output.readStdOut(proc)
-            if proc.stderr:
-                output.readStdErr(proc)
+    def run_jar_order(self):
+        java = [
+            sget('java_path', 'java'),
+            '-jar',
+            self.output_jar_file
+        ]
+        cwd = self.build_dist_folder
 
-            proc.wait()
+        return (java, cwd)
 
-        except Exception, e:
-            msg = "Error: %s" % e
-            output.write(msg)
 
-    def compile_and_run(self):
-        self.compile()
-        self.run_jar()
-        if sget('hide_output_after_compilation', True):
-            self.output.close()
-
-class CompileCurrentFileCommand(CommandBase):
+class CompileCurrentFileCommand(javacbase.CommandBase):
     def init(self):
-        self.view.run_command('save')
-
-        self.output = output = OutputWindow( self.view.window() )
-
-        output.writeLine("------------Compiling------------")
-        output.writeLine('')
-
         self.file_name = self.view.file_name()
         self.file_dir = os.path.dirname(self.file_name)
 
-        output.show()
-
     def compile(self):
-        try:
-            self.proc = subprocess.Popen(
-                 [ sget('javac_path', 'javac'), self.file_name],
-                 cwd = self.file_dir,
-                 stdout = subprocess.PIPE,
-                 stderr = subprocess.PIPE
-            )
+        javac = [sget('javac_path', 'javac'), self.file_name]
+        cwd = self.file_dir
 
-            self.has_errors = False
-
-            if self.proc.stdout:
-                self.readStdOut()
-            if self.proc.stderr:
-                self.readStdErr()
-
-            self.proc.wait()
-
-            self.output.writeLine("------------Compilation end------------")
-
-            if not self.has_errors:
-                self.output.close()
-
-        except Exception, e:
-            self.has_errors = True
-            msg = "Error: %s" % e
-            self.output.write(msg)
-
+        return javac, cwd
 
     def run(self, edit):
+        javacbase.CommandBase.run(self, edit)
         self.init()
-        thread.start_new_thread( self.compile, () )
+        self.call_new_thread_chain((self.compile,))
+
 
 class CompileAndRunCurrentFileCommand(CompileCurrentFileCommand):
 
     def java_run(self):
-        if self.has_errors: return
-        try:
-
-            self.base_name = os.path.splitext( os.path.basename(self.file_name) )[0]
-
-            self.proc = subprocess.Popen(
-                [ sget('java_path', 'java'), self.base_name],
-                cwd = self.file_dir,
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE
-            )
-
-
-            if self.proc.stdout:
-                self.readStdOut()
-            if self.proc.stderr:
-                self.readStdErr()
-
-        except Exception, e:
-            msg = "Error: %s" % e
-            self.output.write(msg)
-
-    def compile_and_run(self):
-        self.compile()
-        self.java_run()
+        base_name = os.path.splitext(os.path.basename(self.file_name))[0]
+        java = [
+            sget('java_path', 'java'),
+            base_name
+        ]
+        cwd = self.file_dir
+        return java, cwd
 
     def run(self, edit):
+        self.write(self)
+        javacbase.CommandBase.run(self, edit)
         self.init()
-        thread.start_new_thread(self.compile_and_run, ())
-
-"""
+        orders = (self.compile, self.java_run)
+        self.call_new_thread_chain(orders)

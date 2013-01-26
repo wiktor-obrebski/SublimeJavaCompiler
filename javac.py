@@ -18,6 +18,8 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
 
         rel_dir = os.path.dirname(project_config_path)
 
+        self.libs = [clear_path(path) for path in settings.get('libs', [])]
+
         self.src          = clear_path(settings.get('sources_directory', 'src'))
         if not os.path.isdir(self.src): os.makedirs(self.src)
 
@@ -47,7 +49,6 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
     "entry_file"        : "Test/HelloWorld.java",
     "entry_point"       : "Test.HelloWorld"
 }"""    )
-        #json.dump(config, _file, indent=4, separators=(',', '\t\t:\t'))
         _file.close()
         if hasattr('_output', self ):
             self.output().close()
@@ -112,10 +113,15 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
 
         javac = [
             sget('javac_path', 'javac'),
-            '-verbose',
-            '-d', self.build_classes_path,
-            self.entry_file
+            '-d', self.build_classes_path
         ]
+        libs = self.libs
+        libs.append('.')
+
+        if len(self.libs) > 0:
+            javac.extend(['-cp', '%s' % ':'.join(libs)])
+        javac.append( self.entry_file )
+
         return (javac, self.src)
 
     def _run(self, edit):
@@ -144,7 +150,10 @@ class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
         ]
         cwd = self.build_dist_folder
 
-        return (java, cwd)
+        self.write("\n------------Running application------------")
+        self.write("")
+
+        return java, cwd
 
 
 class CompileCurrentFileCommand(javacbase.CommandBase):
@@ -153,7 +162,7 @@ class CompileCurrentFileCommand(javacbase.CommandBase):
         self.file_dir = os.path.dirname(self.file_name)
 
     def compile(self):
-        javac = [sget('javac_path', 'javac'), '-verbose', self.file_name]
+        javac = [sget('javac_path', 'javac'), self.file_name]
         cwd = self.file_dir
 
         self.write("\n------------Compiling file------------")

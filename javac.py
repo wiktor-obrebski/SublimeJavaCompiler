@@ -80,16 +80,14 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
         ]
         return (javac, self.src)
 
-    def run(self, edit):
-        javacbase.CommandBase.run(self, edit)
+    def _run(self, edit):
         if self.init():
             orders = (self.compile_project_order, self.pack_jar_order)
             self.call_new_thread_chain(orders)
 
 
 class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
-    def run(self, edit):
-        javacbase.CommandBase.run(self, edit)
+    def _run(self, edit):
         if self.init():
             orders = (
                 self.compile_project_order,
@@ -115,13 +113,15 @@ class CompileCurrentFileCommand(javacbase.CommandBase):
         self.file_dir = os.path.dirname(self.file_name)
 
     def compile(self):
-        javac = [sget('javac_path', 'javac'), self.file_name]
+        javac = [sget('javac_path', 'javac'), '-verbose', self.file_name]
         cwd = self.file_dir
+
+        self.write("\n------------Compiling file------------")
+        self.write("")
 
         return javac, cwd
 
-    def run(self, edit):
-        javacbase.CommandBase.run(self, edit)
+    def _run(self, edit):
         self.init()
         self.call_new_thread_chain((self.compile,))
 
@@ -137,9 +137,7 @@ class CompileAndRunCurrentFileCommand(CompileCurrentFileCommand):
         cwd = self.file_dir
         return java, cwd
 
-    def run(self, edit):
-        self.write(self)
-        javacbase.CommandBase.run(self, edit)
+    def _run(self, edit):
         self.init()
         orders = (self.compile, self.java_run)
         self.call_new_thread_chain(orders)

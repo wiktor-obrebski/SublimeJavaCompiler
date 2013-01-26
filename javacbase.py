@@ -80,7 +80,8 @@ class CommandBase(sublime_plugin.TextCommand):
     def output(self):
         if not hasattr(self, '_output'):
             self._output = OutputWindow(self.view.window())
-            self._output.show()
+
+        self._output.show()
         return self._output
 
     def call_new_thread_chain(self, orders_list):
@@ -110,8 +111,9 @@ class CommandBase(sublime_plugin.TextCommand):
 
 
     def run(self, edit):
-        self.output().clear()
         self.view.run_command('save')
+        self.output().clear()
+        self._run(edit)
 
 class JavaCThread(threading.Thread):
     """ Wrapper for calling externall application in thread for this plugin.

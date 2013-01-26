@@ -111,8 +111,6 @@ class CommandBase(sublime_plugin.TextCommand):
 
 
     def run(self, edit):
-        self.view.run_command('save')
-        self.output().clear()
         self._run(edit)
 
 class JavaCThread(threading.Thread):

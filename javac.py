@@ -35,6 +35,23 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
         self.entry_point = settings.get('entry_point', 'Namespace.EntryPointClass')
         self.entry_file  = settings.get('entry_file', 'Namespace/EntryPointClass.java')
 
+    def generate_base_config(self, target_dir):
+        target_path = os.path.join(target_dir, project_config_filename)
+
+        _file = open(target_path, 'w')
+        _file.write("""{
+    "project_name"      : "HelloWorld",
+    "output_directory"  : "output",
+    "sources_directory" : "src",
+
+    "entry_file"        : "Test/HelloWorld.java",
+    "entry_point"       : "Test.HelloWorld"
+}"""    )
+        #json.dump(config, _file, indent=4, separators=(',', '\t\t:\t'))
+        _file.close()
+        if hasattr('_output', self ):
+            self.output().close()
+        self.view.window().open_file(target_path)
 
     def init(self):
         """ Looking for 'project_config_filename' file in project folders, and load
@@ -43,17 +60,33 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
         """
         self.view.run_command('save')
 
-        dirs   = self.view.window().folders()
+        window = self.view.window()
+        dirs   = window.folders()
         files = [os.path.join(_dir, project_config_filename) for _dir in dirs ]
         files = [_file for _file in files if os.path.exists(_file)]
         if len(files) > 1:
             self.write("Found more than one '%s' file. Can not continue." % project_config_filename)
             return False
         if len(files) == 0:
-            self.write("Can not found anyone '%s' file. Can not continue." % project_config_filename)
+            def show_folders(result):
+                if result == 1 or result == -1: return
+                if len(dirs) > 1:
+                    def choose(result):
+                        if result == -1: return
+                        self.generate_base_config(dirs[result])
+                    _list = [[os.path.basename(_dir), _dir] for _dir in dirs]
+                    window.show_quick_panel(_list, choose)
+                else:
+                    self.generate_base_config(dirs[0])
+            options = [
+                ['Generate new configuration.', 'Generate new java project file configuration.'],
+                ['Cancel', 'Abandon compilation.']
+            ]
+            window.show_quick_panel(options, show_folders)
             return False
 
         self.load_config(files[0])
+        self.output().clear()
 
         return True
 
@@ -93,7 +126,9 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
 
 class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
     def _run(self, edit):
+        self.view.run_command('save')
         if self.init():
+            self.output().clear()
             orders = (
                 self.compile_project_order,
                 self.pack_jar_order,
@@ -127,7 +162,9 @@ class CompileCurrentFileCommand(javacbase.CommandBase):
         return javac, cwd
 
     def _run(self, edit):
+        self.view.run_command('save')
         self.init()
+        self.output().clear()
         self.call_new_thread_chain((self.compile,))
 
 

@@ -19,12 +19,17 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
         rel_dir = os.path.dirname(project_config_path)
 
         self.src          = clear_path(settings.get('sources_directory', 'src'))
+        if not os.path.isdir(self.src): os.makedirs(self.src)
+
         self.project_name = settings.get('project_name', 'project')
 
         build_path  = clear_path(settings.get('output_directory', 'output'))
         self.build_classes_path = os.path.join(build_path,'build/classes')
+        if not os.path.isdir(self.build_classes_path): os.makedirs(self.build_classes_path)
 
         self.build_dist_folder    = os.path.join(build_path,'dist')
+        if not os.path.isdir(self.build_dist_folder): os.makedirs(self.build_dist_folder)
+
         self.output_jar_file = '.'.join([self.project_name, 'jar'])
 
         self.entry_point = settings.get('entry_point', 'Namespace.EntryPointClass')

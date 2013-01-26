@@ -34,7 +34,7 @@ class OutputWindow(object):
     def close(self):
         def _close(self):
             outputWindow = self._getOutputWindow()
-            #self.window.run_command("hide_panel", {"panel": "output." + self.name, "cancel": True})
+            self.window.run_command("hide_panel", {"panel": "output." + self.name, "cancel": True})
         invoke(_close, self)
 
     def clear(self):

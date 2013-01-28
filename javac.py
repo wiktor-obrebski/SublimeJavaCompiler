@@ -2,6 +2,7 @@ import sublime
 import javacbase
 import os, json
 import shutil
+import glob
 from javacbase import sget
 
 project_config_filename = "settings.sublime-javac"
@@ -20,7 +21,7 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
         rel_dir = os.path.dirname(project_config_path)
 
         self.libs = [clear_path(path) for path in settings.get('libs', [])]
-        self.resources = [clear_path(path) for path in settings.get('resourcses', [])]
+        self.resources = [clear_path(path) for path in settings.get('resources', [])]
 
         self.src          = clear_path(settings.get('sources_dir', 'src'))
         if not os.path.isdir(self.src): os.makedirs(self.src)
@@ -128,23 +129,30 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
 
         return (javac, self.src)
 
+    def copy_resourcses(self):
+        files_to_copy = []
+        self.write(self.resources)
+        for pathname in self.resources:
+            files_to_copy.extend(glob.glob(pathname))
+
+        op = os.path
+        for path in files_to_copy:
+            filename  = op.basename(path)
+            targetdir = op.join(self.build_classes_path, op.relpath(op.dirname(path), self.src))
+            targetpath = op.join(targetdir, filename)
+            if not op.isfile(targetpath):
+                if not op.isdir(targetdir): os.makedirs(targetdir)
+                shutil.copy(path, targetpath)
+
     def _run(self, edit):
+        self.view.run_command('save')
         if self.init():
+            self.copy_resourcses()
             orders = (self.compile_project_order, self.pack_jar_order)
             self.call_new_thread_chain(orders)
 
 
 class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
-    def _run(self, edit):
-        self.view.run_command('save')
-        if self.init():
-            self.output().clear()
-            orders = (
-                self.compile_project_order,
-                self.pack_jar_order,
-                self.run_jar_order
-            )
-            self.call_new_thread_chain(orders)
 
     def run_jar_order(self):
         java = [
@@ -158,6 +166,19 @@ class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
         self.write("")
 
         return java, cwd
+
+    def _run(self, edit):
+        self.view.run_command('save')
+        if self.init():
+            self.copy_resourcses()
+            self.output().clear()
+            orders = (
+                self.compile_project_order,
+                self.pack_jar_order,
+                self.run_jar_order
+            )
+            self.call_new_thread_chain(orders)
+
 
 
 class ClearCurrentProjectCommand(CompileCurrentProjectCommand):

@@ -1,6 +1,7 @@
 import sublime
 import javacbase
 import os, json
+import shutil
 from javacbase import sget
 
 project_config_filename = "settings.sublime-javac"
@@ -19,13 +20,14 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
         rel_dir = os.path.dirname(project_config_path)
 
         self.libs = [clear_path(path) for path in settings.get('libs', [])]
+        self.resources = [clear_path(path) for path in settings.get('resourcses', [])]
 
-        self.src          = clear_path(settings.get('sources_directory', 'src'))
+        self.src          = clear_path(settings.get('sources_dir', 'src'))
         if not os.path.isdir(self.src): os.makedirs(self.src)
 
         self.project_name = settings.get('project_name', 'project')
 
-        build_path  = clear_path(settings.get('output_directory', 'output'))
+        self.output_dir = build_path  = clear_path(settings.get('output_dir', 'output'))
         self.build_classes_path = os.path.join(build_path,'build/classes')
         if not os.path.isdir(self.build_classes_path): os.makedirs(self.build_classes_path)
 
@@ -43,8 +45,10 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
         _file = open(target_path, 'w')
         _file.write("""{
     "project_name"      : "HelloWorld",
-    "output_directory"  : "output",
-    "sources_directory" : "src",
+    "output_dir"  : "output",
+    "sources_dir" : "src",
+    "resources"   : [],
+    "libs"        : [],
 
     "entry_file"        : "Test/HelloWorld.java",
     "entry_point"       : "Test.HelloWorld"
@@ -154,6 +158,12 @@ class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
         self.write("")
 
         return java, cwd
+
+
+class ClearCurrentProjectCommand(CompileCurrentProjectCommand):
+    def _run(self, edit):
+        if self.init():
+            shutil.rmtree(self.output_dir)
 
 
 class CompileCurrentFileCommand(javacbase.CommandBase):

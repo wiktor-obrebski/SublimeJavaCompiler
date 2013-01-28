@@ -14,5 +14,9 @@
     {
         "caption": "JavaC: Compile&Run Project",
         "command": "compile_and_run_current_project"
+    },
+    {
+        "caption": "JavaC: Clear Project",
+        "command": "clear_current_project"
     }
 ]

@@ -55,7 +55,7 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
     "entry_point"       : "Test.HelloWorld"
 }"""    )
         _file.close()
-        if hasattr('_output', self ):
+        if hasattr(self, '_output'):
             self.output().close()
         self.view.window().open_file(target_path)
 
@@ -92,7 +92,8 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
             return False
 
         self.load_config(files[0])
-        self.output().clear()
+        if hasattr(self, '_output'):
+            self.output().clear()
 
         return True
 
@@ -184,7 +185,13 @@ class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
 class ClearCurrentProjectCommand(CompileCurrentProjectCommand):
     def _run(self, edit):
         if self.init():
-            shutil.rmtree(self.output_dir)
+            self.view.run_command('save')
+            self.write("\n------------Clearing project------------")
+            self.write("")
+            if os.path.isdir(self.output_dir):
+                shutil.rmtree(self.output_dir)
+            if sget('hide_output_after_compilation', True):
+                self.output().close()
 
 
 class CompileCurrentFileCommand(javacbase.CommandBase):

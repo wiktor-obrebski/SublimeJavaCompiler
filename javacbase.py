@@ -13,7 +13,7 @@ def invoke(callback, *args, **kwargs):
 class OutputWindow(object):
     """ Thread-safe output window
     """
-    def __init__(self, window, name='composer'):
+    def __init__(self, window, name='javac_wnd'):
         self.window = window
         self.name = name
         self.outputWindow = None
@@ -26,26 +26,25 @@ class OutputWindow(object):
         return self.outputWindow
 
     def show(self):
-        def _show(self):
+        def _show():
             self._getOutputWindow()
             self.window.run_command("show_panel", {"panel": "output." + self.name})
-        invoke(_show, self)
+        invoke(_show)
 
     def close(self):
-        def _close(self):
-            outputWindow = self._getOutputWindow()
+        def _close():
             self.window.run_command("hide_panel", {"panel": "output." + self.name, "cancel": True})
-        invoke(_close, self)
+        invoke(_close)
 
     def clear(self):
-        def _clear(self):
+        def _clear():
             outputWindow = self._getOutputWindow()
             outputWindow.set_read_only(False)
             edit = outputWindow.begin_edit()
             outputWindow.erase(edit, sublime.Region(0, outputWindow.size()))
             outputWindow.end_edit(edit)
             outputWindow.set_read_only(True)
-        invoke(_clear, self)
+        invoke(_clear)
 
     def write(self, data, new_line=True):
         """ Thread-safe writing text to console and adding new line.

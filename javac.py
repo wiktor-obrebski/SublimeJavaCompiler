@@ -29,11 +29,19 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
         self.project_name = settings.get('project_name', 'project')
 
         self.output_dir = build_path  = clear_path(settings.get('output_dir', 'output'))
+
         self.build_classes_path = os.path.join(build_path,'build/classes')
+        #delete old files
+        filelist = glob.glob(os.path.join(self.build_classes_path, "*.class"))
+        for f in filelist: os.remove(f)
+
         if not os.path.isdir(self.build_classes_path): os.makedirs(self.build_classes_path)
 
         self.build_dist_folder    = os.path.join(build_path,'dist')
         if not os.path.isdir(self.build_dist_folder): os.makedirs(self.build_dist_folder)
+        #delete old files
+        filelist = glob.glob(os.path.join(self.build_dist_folder, "*.jar"))
+        for f in filelist: os.remove(f)
 
         self.output_jar_file = '.'.join([self.project_name, 'jar'])
 

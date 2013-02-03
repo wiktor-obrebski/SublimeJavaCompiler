@@ -8,6 +8,8 @@ This plugin adds the following commands to sublime Command Palette:
     JavaC: Compile & Run Current File
     JavaC: Compile Current Project
     JavaC: Compile & Run Current Project
+    JavaC: Generate Jar Package For Project
+    JavaC: Generate & Run Jar Package For Project
     JavaC: Clear Project
 
 ## Installation

@@ -1,6 +1,8 @@
-What exacly this plugin should do?
+# Sublime Text 2 Plugin: Javac
 
-Adds the following commands to menu:
+## Basic
+
+This plugin adds the following commands to sublime Command Palette:
 
     JavaC: Compile Current File
     JavaC: Compile & Run Current File
@@ -10,19 +12,21 @@ Adds the following commands to menu:
 
     JavaC: Clear Project
 
+## Installation
 
-First two just compile current file and make output in this same directory (and run if needed).
-Second one working only with prepared project. It should looking for 'settings.sublime-javac' file,
-load configuration from it and compile full project (and run if needed).
+Move to you "Sublime 2 Text" packages folder and clone this repository to it:
+    git clone git@github.com:psychowico/SublimeJavaCompiler.git
 
-Settings format (js):
+## Configuration
 
-{
-    "project_name"      : "HelloWorld",
-    "output_dir"        : "output",
-    "sources_dir"       : "src",
-    "resources"         : [],
-    "libs"              : [],
-    "entry_file"        : "Test/HelloWorld.java",
-    "entry_point"       : "Test.HelloWorld"
-}
+When you trying compile simple java file, you should just use *JavaC: Compile Current File* or *JavaC: Compile & Run Current File* options. When you want compile full project, more complex, with namespaces, libraries etc. you need add to project configuration file. When you run *JavaC: Compile Current Project* command JavaC offer you to generate project configuration file. It will be *settings.sublime-javac*.
+
+    {
+        "project_name"      : "HelloWorld",
+        "output_dir"        : "output",
+        "sources_dir"       : "src",
+        "resources"         : [],
+        "libs"              : [],
+        "entry_file"        : "Test/HelloWorld.java",
+        "entry_point"       : "Test.HelloWorld"
+    }

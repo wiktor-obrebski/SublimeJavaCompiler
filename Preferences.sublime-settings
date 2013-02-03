@@ -2,5 +2,5 @@
     "java_path" : "java",
     "javac_path": "javac",
     "jar_path"  : "jar",
-    "hide_output_after_compilation": true
+    "javac_autohide": true
 }

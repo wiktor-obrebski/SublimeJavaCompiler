@@ -1,22 +1,22 @@
 [
     {
         "caption": "JavaC: Compile Current File",
-        "command": "compile_current_file"
+        "command": "javac_compile_file"
     },
     {
         "caption": "JavaC: Compile&Run Current File",
-        "command": "compile_and_run_current_file"
+        "command": "javac_compile_and_run_file"
     },
     {
         "caption": "JavaC: Compile Project",
-        "command": "compile_current_project"
+        "command": "javac_compile_project"
     },
     {
         "caption": "JavaC: Compile&Run Project",
-        "command": "compile_and_run_current_project"
+        "command": "javac_compile_and_run_project"
     },
     {
         "caption": "JavaC: Clear Project",
-        "command": "clear_current_project"
+        "command": "javac_clear_project"
     }
 ]

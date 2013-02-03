@@ -7,7 +7,7 @@ from javacbase import sget
 
 project_config_filename = "settings.sublime-javac"
 
-class CompileCurrentProjectCommand(javacbase.CommandBase):
+class JavacCompileProjectCommand(javacbase.CommandBase):
     def load_config(self, project_config_path):
 
         def clear_path(path, ):
@@ -140,7 +140,6 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
 
     def copy_resourcses(self):
         files_to_copy = []
-        self.write(self.resources)
         for pathname in self.resources:
             files_to_copy.extend(glob.glob(pathname))
 
@@ -161,7 +160,7 @@ class CompileCurrentProjectCommand(javacbase.CommandBase):
             self.call_new_thread_chain(orders)
 
 
-class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
+class JavacCompileAndRunProjectCommand(JavacCompileProjectCommand):
 
     def run_jar_order(self):
         java = [
@@ -189,8 +188,7 @@ class CompileAndRunCurrentProjectCommand(CompileCurrentProjectCommand):
             self.call_new_thread_chain(orders)
 
 
-
-class ClearCurrentProjectCommand(CompileCurrentProjectCommand):
+class JavacClearProjectCommand(JavacCompileProjectCommand):
     def _run(self, edit):
         if self.init():
             self.view.run_command('save')
@@ -198,11 +196,11 @@ class ClearCurrentProjectCommand(CompileCurrentProjectCommand):
             self.write("")
             if os.path.isdir(self.output_dir):
                 shutil.rmtree(self.output_dir)
-            if sget('hide_output_after_compilation', True):
+            if sget('javac_autohide', True):
                 self.output().close()
 
 
-class CompileCurrentFileCommand(javacbase.CommandBase):
+class JavacCompileFileCommand(javacbase.CommandBase):
     def init(self):
         self.file_name = self.view.file_name()
         self.file_dir = os.path.dirname(self.file_name)
@@ -223,7 +221,7 @@ class CompileCurrentFileCommand(javacbase.CommandBase):
         self.call_new_thread_chain((self.compile,))
 
 
-class CompileAndRunCurrentFileCommand(CompileCurrentFileCommand):
+class JavacCompileAndRunFileCommand(JavacCompileFileCommand):
 
     def java_run(self):
         base_name = os.path.splitext(os.path.basename(self.file_name))[0]

@@ -189,15 +189,24 @@ class JavacCompileAndRunProjectCommand(JavacCompileProjectCommand):
 
 
 class JavacClearProjectCommand(JavacCompileProjectCommand):
-    def _run(self, edit):
-        if self.init():
+
+    def _clearing(self, result):
+        if result == 0 and self.init():
             self.view.run_command('save')
+
             self.write("\n------------Clearing project------------")
             self.write("")
             if os.path.isdir(self.output_dir):
                 shutil.rmtree(self.output_dir)
             if sget('javac_autohide', True):
                 self.output().close()
+
+    def _run(self, edit):
+        options = [
+            ['Confirmation', 'All files in my "output" directory will be deleted.'],
+            ['Cancel', 'Abandon project clearing.']
+        ]
+        self.view.window().show_quick_panel(options, self._clearing)
 
 
 class JavacCompileFileCommand(javacbase.CommandBase):

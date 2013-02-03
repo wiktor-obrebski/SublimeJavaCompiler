@@ -30,7 +30,7 @@ class JavacCompileProjectCommand(javacbase.CommandBase):
 
         self.output_dir = build_path  = clear_path(settings.get('output_dir', 'output'))
 
-        self.build_classes_path = os.path.join(build_path,'build/classes')
+        self.build_classes_path = os.path.join(build_path,'classes')
         #delete old files
         filelist = glob.glob(os.path.join(self.build_classes_path, "*.class"))
         for f in filelist: os.remove(f)

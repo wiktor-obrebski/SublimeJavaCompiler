@@ -105,21 +105,6 @@ class JavacCompileProjectCommand(javacbase.CommandBase):
 
         return True
 
-    def pack_jar_order(self):
-        self.write("\n------------Packing jar------------")
-        self.write("")
-
-        output_path = os.path.join(self.build_dist_folder, self.output_jar_file)
-        jar = [
-           sget('jar_path', 'jar'),
-           'cfev',
-           output_path,
-           self.entry_point,
-           '.'
-        ]
-        cwd = self.build_classes_path
-        return (jar, cwd)
-
     def compile_project_order(self):
 
         self.write("\n------------Compiling project------------")
@@ -156,19 +141,25 @@ class JavacCompileProjectCommand(javacbase.CommandBase):
         self.view.run_command('save')
         if self.init():
             self.copy_resourcses()
-            orders = (self.compile_project_order, self.pack_jar_order)
+            orders = (self.compile_project_order, )
             self.call_new_thread_chain(orders)
 
 
 class JavacCompileAndRunProjectCommand(JavacCompileProjectCommand):
 
-    def run_jar_order(self):
+    def run_classes_order(self):
         java = [
-            sget('java_path', 'java'),
-            '-jar',
-            self.output_jar_file
+            sget('java_path', 'java')
         ]
-        cwd = self.build_dist_folder
+        libs = self.libs
+        libs.append('.')
+
+        if len(self.libs) > 0:
+            java.extend(['-cp', '%s' % ':'.join(libs)])
+
+        java.append( self.entry_point )
+
+        cwd = self.build_classes_path
 
         self.write("\n------------Running application------------")
         self.write("")
@@ -182,8 +173,7 @@ class JavacCompileAndRunProjectCommand(JavacCompileProjectCommand):
             self.output().clear()
             orders = (
                 self.compile_project_order,
-                self.pack_jar_order,
-                self.run_jar_order
+                self.run_classes_order
             )
             self.call_new_thread_chain(orders)
 
@@ -245,3 +235,60 @@ class JavacCompileAndRunFileCommand(JavacCompileFileCommand):
         self.init()
         orders = (self.compile, self.java_run)
         self.call_new_thread_chain(orders)
+
+class JavacGenerateJarCommand(JavacCompileProjectCommand):
+
+    def pack_jar_order(self):
+        self.write("\n------------Packing jar------------")
+        self.write("")
+
+        output_path = os.path.join(self.build_dist_folder, self.output_jar_file)
+        jar = [
+           sget('jar_path', 'jar'),
+           'cfev',
+           output_path,
+           self.entry_point,
+           '.'
+        ]
+        cwd = self.build_classes_path
+        return (jar, cwd)
+
+
+    def _run(self, edit):
+        self.view.run_command('save')
+        if self.init():
+            self.copy_resourcses()
+            self.output().clear()
+            orders = (
+                self.compile_project_order,
+                self.pack_jar_order
+            )
+            self.call_new_thread_chain(orders)
+
+class JavacGenerateAndRunJarCommand(JavacGenerateJarCommand):
+
+    def run_jar_order(self):
+        java = [
+            sget('java_path', 'java'),
+            '-jar',
+            self.output_jar_file
+        ]
+        cwd = self.build_dist_folder
+
+        self.write("\n------------Running application------------")
+        self.write("")
+
+        return java, cwd
+
+
+    def _run(self, edit):
+        self.view.run_command('save')
+        if self.init():
+            self.copy_resourcses()
+            self.output().clear()
+            orders = (
+                self.compile_project_order,
+                self.pack_jar_order,
+                self.run_jar_order
+            )
+            self.call_new_thread_chain(orders)

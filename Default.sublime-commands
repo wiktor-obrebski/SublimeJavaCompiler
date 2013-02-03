@@ -18,5 +18,13 @@
     {
         "caption": "JavaC: Clear Project",
         "command": "javac_clear_project"
+    },
+    {
+        "caption": "JavaC: Generate Jar Package For Project",
+        "command": "javac_generate_jar"
+    },
+    {
+        "caption": "JavaC: Generate&Run Jar Package For Project",
+        "command": "javac_generate_and_run_jar"
     }
 ]

@@ -149,15 +149,12 @@ class JavaCThread(threading.Thread):
                     stdout=subprocess.PIPE
                 )
 
-                last_line = None
                 for line in iter(proc.stdout.readline, ''):
-                    last_line = line
                     log(line)
-                proc.stdout.close()
 
-                has_errors = False
-                if last_line is not None:
-                    has_errors = 'error' in last_line
+                proc.wait()
+
+                has_errors = proc.returncode != 0
 
                 if self.on_done is not None:
                     invoke(self.on_done, has_errors)

@@ -40,11 +40,11 @@ Options meaning:
  * *entry_file*   - entry file where you have class with "Main" program function
  * *entry_point*  - class with "Main" program function
 
- All pathes are relative to you project main directory (where *settings.sublime-javac* file is stored).
+All pathes are relative to you project main directory (where *settings.sublime-javac* file is stored).
 
- ### Keyboard
+### Keyboard
 
- You can add keyboard shortcuts by clicking in you "Preferences/Key Bindings - User" and add additional lines:
+You can add keyboard shortcuts by clicking in you "Preferences/Key Bindings - User" and add additional lines:
 
     { "keys": ["f5"], "command": "javac_compile_and_run_project" },
     { "keys": ["f6"], "command": "javac_compile_project" },

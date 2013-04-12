@@ -53,3 +53,20 @@ You can add keyboard shortcuts by clicking in you "Preferences/Key Bindings - Us
     { "keys": ["shift+f5"], "command": "javac_compile_and_run_file" },
     { "keys": ["shift+f6"], "command": "javac_compile_file" },
     { "keys": ["ctrl+shift+f7"], "command": "javac_clear_project" }
+
+### Settings
+
+You can change settings about Java path or hide output-window option.
+
+ * Open your SublimeJavaCompiler User Settings Preferences file ```Preferences -> Package Settings -> Sublime Java Compiler -> Settings - User```
+ * Add or update items.
+
+These are the basic settings you can change:
+
+    {
+    	"java_path" : "java",
+    	"javac_path": "javac",
+    	"jar_path"  : "jar",
+    	"javac_autohide": true,
+    	"hide_output_after_compilation": true
+    }

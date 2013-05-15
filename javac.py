@@ -18,9 +18,12 @@ class JavacCompileProjectCommand(javacbase.CommandBase):
         settings = json.load(settings_obj)
         settings_obj.close()
 
-        rel_dir = os.path.dirname(project_config_path)
+        self.project_dir = rel_dir = os.path.dirname(project_config_path)
 
-        self.libs = [clear_path(path) for path in settings.get('libs', [])]
+        self.base_libs = settings.get('libs', [])
+        self.libs = [clear_path(path) for path in self.base_libs]
+        self.libs.append('.')
+
         self.resources = [clear_path(path) for path in settings.get('resources', [])]
 
         self.src          = clear_path(settings.get('sources_dir', 'src'))
@@ -113,20 +116,17 @@ class JavacCompileProjectCommand(javacbase.CommandBase):
         javac = [
             sget('javac_path', 'javac'),
             '-d', self.build_classes_path,
-			'-encoding', 'ISO-8859-1',
-            '-sourcepath', self.src
+			'-encoding', 'ISO-8859-1'
         ]
         libs = self.libs
-        #libs.append('.')
 
         if len(self.libs) > 0:
-            javac.extend(['-cp', '%s' % ':'.join(libs)])
-        #self.write(javac)
+            javac.extend(['-cp', '%s' % os.pathsep.join(libs)])
         javac.append( self.entry_file )
 
         return (javac, self.src)
 
-    def copy_resourcses(self):
+    def copy_resources(self):
         files_to_copy = []
         for pathname in self.resources:
             files_to_copy.extend(glob.glob(pathname))
@@ -143,7 +143,7 @@ class JavacCompileProjectCommand(javacbase.CommandBase):
     def _run(self, edit):
         self.view.run_command('save')
         if self.init():
-            self.copy_resourcses()
+            self.copy_resources()
             orders = (self.compile_project_order, )
             self.call_new_thread_chain(orders)
 
@@ -152,13 +152,12 @@ class JavacCompileAndRunProjectCommand(JavacCompileProjectCommand):
 
     def run_classes_order(self):
         java = [
-            sget('java_path', 'java')
+            sget('java_path', 'java'),
         ]
         libs = self.libs
-        libs.append('.')
 
         if len(self.libs) > 0:
-            java.extend(['-cp', '%s' % ':'.join(libs)])
+            java.extend(['-cp', '%s' % os.pathsep.join(libs)])
 
         java.append( self.entry_point )
 
@@ -172,7 +171,7 @@ class JavacCompileAndRunProjectCommand(JavacCompileProjectCommand):
     def _run(self, edit):
         self.view.run_command('save')
         if self.init():
-            self.copy_resourcses()
+            self.copy_resources()
             self.output().clear()
             orders = (
                 self.compile_project_order,
@@ -248,7 +247,8 @@ class JavacGenerateJarCommand(JavacCompileProjectCommand):
         output_path = os.path.join(self.build_dist_folder, self.output_jar_file)
         jar = [
            sget('jar_path', 'jar'),
-           'cfev',
+           'cmfev',
+           'Manifest',
            output_path,
            self.entry_point,
            '.'
@@ -256,14 +256,30 @@ class JavacGenerateJarCommand(JavacCompileProjectCommand):
         cwd = self.build_classes_path
         return (jar, cwd)
 
+    def prepare_manifest(self):
+        libs = self.base_libs
+        return 'echo Class-Path: %s > Manifest' % ' '.join(libs), self.build_classes_path
+
+    def copy_libs(self):
+        op = os.path
+        libs = self.libs[:]
+        libs.remove('.')
+        for path in libs:
+            target_file = op.join(self.build_dist_folder, op.relpath(path, self.project_dir))
+            target_dir  = op.dirname(target_file)
+            if not op.isfile(target_file):
+                if not op.isdir(target_dir): os.makedirs(target_dir)
+                shutil.copy(path, target_file)
 
     def _run(self, edit):
         self.view.run_command('save')
         if self.init():
-            self.copy_resourcses()
             self.output().clear()
+            self.copy_resources()
+            self.copy_libs()
             orders = (
                 self.compile_project_order,
+                self.prepare_manifest,
                 self.pack_jar_order
             )
             self.call_new_thread_chain(orders)
@@ -283,14 +299,15 @@ class JavacGenerateAndRunJarCommand(JavacGenerateJarCommand):
 
         return java, cwd
 
-
     def _run(self, edit):
         self.view.run_command('save')
         if self.init():
-            self.copy_resourcses()
             self.output().clear()
+            self.copy_resources()
+            self.copy_libs()
             orders = (
                 self.compile_project_order,
+                self.prepare_manifest,
                 self.pack_jar_order,
                 self.run_jar_order
             )

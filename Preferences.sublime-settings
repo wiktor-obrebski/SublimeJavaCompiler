@@ -1,7 +1,7 @@
 {
     "java_path" : "java",
-    "javac_path": "javac",
-    "jar_path"  : "jar",
+    "javac_path": "C:/Program Files/Java/jdk1.7.0_21/bin/javac",
+    "jar_path"  : "C:/Program Files/Java/jdk1.7.0_21/bin/jar",
     "javac_autohide": true,
     "hide_output_after_compilation": true
 }

@@ -87,6 +87,7 @@ class CommandBase(sublime_plugin.TextCommand):
         """ Calling all cmd in "orders_list" array, after last
         close output wnd, if no errors
         """
+
         def _callback(has_errors):
             if has_errors: return
 

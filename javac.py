@@ -112,13 +112,16 @@ class JavacCompileProjectCommand(javacbase.CommandBase):
 
         javac = [
             sget('javac_path', 'javac'),
-            '-d', self.build_classes_path
+            '-d', self.build_classes_path,
+			'-encoding', 'ISO-8859-1',
+            '-sourcepath', self.src
         ]
         libs = self.libs
-        libs.append('.')
+        #libs.append('.')
 
         if len(self.libs) > 0:
             javac.extend(['-cp', '%s' % ':'.join(libs)])
+        #self.write(javac)
         javac.append( self.entry_file )
 
         return (javac, self.src)

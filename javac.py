@@ -119,7 +119,6 @@ class JavacCompileProjectCommand(javacbase.CommandBase):
         self.write("\n------------Compiling project------------")
         self.write("")
 
-        self.write(self.encoding)
         javac = [
             sget('javac_path', 'javac'),
             '-d', self.build_classes_path,
@@ -265,7 +264,7 @@ class JavacGenerateJarCommand(JavacCompileProjectCommand):
 
     def prepare_manifest(self):
         libs = self.base_libs
-        text = 'Class-Path: %s' % ' '.join(libs)
+        text = 'Class-Path: %s' % ' '.join(libs) + '\n'
         path = os.path.join(self.build_classes_path, 'Manifest')
 
         _file = open(path, 'w')

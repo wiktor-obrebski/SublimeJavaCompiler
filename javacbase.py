@@ -83,7 +83,7 @@ class CommandBase(sublime_plugin.TextCommand):
         self._output.show()
         return self._output
 
-    def call_new_thread_chain(self, orders_list):
+    def call_new_thread_chain(self, orders_list, donemsg="\n------------Done------------"):
         """ Calling all cmd in "orders_list" array, after last
         close output wnd, if no errors
         """
@@ -92,6 +92,8 @@ class CommandBase(sublime_plugin.TextCommand):
             if has_errors: return
 
             if _callback.counter >= len(orders_list):
+                if donemsg:
+                    self.write(donemsg)
                 if not has_errors and sget('hide_output_after_compilation', True):
                     self.output().close()
                 return

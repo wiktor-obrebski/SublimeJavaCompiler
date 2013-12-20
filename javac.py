@@ -15,12 +15,17 @@ class JavacCompileProjectCommand(javacbase.CommandBase):
             return os.path.join(rel_dir, path)
 
         settings_obj = open(project_config_path)
-        settings = json.load(settings_obj)
+        try:
+            settings = json.load(settings_obj)
+        except ValueError:
+            self.write("\nUnable to load project settings file. Check your 'settings.sublime-javac' for errors.\n")
+            return False
         settings_obj.close()
 
         self.project_dir = rel_dir = os.path.dirname(project_config_path)
 
         self.base_libs = settings.get('libs', [])
+        self.encoding  = settings.get('encoding', 'utf-8')
         self.libs = [clear_path(path) for path in self.base_libs]
         self.libs.append('.')
 
@@ -50,6 +55,7 @@ class JavacCompileProjectCommand(javacbase.CommandBase):
 
         self.entry_point = settings.get('entry_point', 'Namespace.EntryPointClass')
         self.entry_file  = settings.get('entry_file', 'Namespace/EntryPointClass.java')
+        return True
 
     def generate_base_config(self, target_dir):
         target_path = os.path.join(target_dir, project_config_filename)
@@ -102,21 +108,21 @@ class JavacCompileProjectCommand(javacbase.CommandBase):
             window.show_quick_panel(options, show_folders)
             return False
 
-        self.load_config(files[0])
         if hasattr(self, '_output'):
             self.output().clear()
 
-        return True
+        return self.load_config(files[0])
 
     def compile_project_order(self):
 
         self.write("\n------------Compiling project------------")
         self.write("")
 
+        self.write(self.encoding)
         javac = [
             sget('javac_path', 'javac'),
             '-d', self.build_classes_path,
-			'-encoding', 'ISO-8859-1'
+			'-encoding', self.encoding
         ]
         libs = self.libs
 
@@ -310,9 +316,9 @@ class JavacGenerateAndRunJarCommand(JavacGenerateJarCommand):
             self.output().clear()
             self.copy_resources()
             self.copy_libs()
+            self.prepare_manifest()
             orders = (
                 self.compile_project_order,
-                self.prepare_manifest,
                 self.pack_jar_order,
                 self.run_jar_order
             )

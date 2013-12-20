@@ -67,6 +67,7 @@ class JavacCompileProjectCommand(javacbase.CommandBase):
     "sources_dir" : "src",
     "resources"   : [],
     "libs"        : [],
+    "encoding"    : "utf-8",
 
     "entry_file"        : "Test/HelloWorld.java",
     "entry_point"       : "Test.HelloWorld"

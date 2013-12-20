@@ -2,7 +2,7 @@ import sublime, sublime_plugin
 import threading, subprocess, functools
 import os
 
-settings = sublime.load_settings("Preferences.sublime-settings")
+settings = sublime.load_settings("SublimeJavaCompiler.sublime-settings")
 sget = settings.get
 
 def invoke(callback, *args, **kwargs):

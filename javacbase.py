@@ -142,7 +142,6 @@ class JavaCThread(threading.Thread):
                 shell = os.name == 'nt'
                 if self.working_dir != '':
                     os.chdir(self.working_dir)
-                    
                 proc = subprocess.Popen(self.cmd,
                     shell=shell,
                     universal_newlines=True,
@@ -163,8 +162,8 @@ class JavaCThread(threading.Thread):
         except subprocess.CalledProcessError, e:
             if self.on_done is not None:
                 invoke(self.on_done, e.returncode)
-        except OSError as e:
-            if e.errno == os.errno.ENOENT:
-                self.log('Unable to locate javac in your system.')
-            if self.on_done is not None:
-                invoke(self.on_done, e.returncode)
+        # except OSError as e:
+        #     if e.errno == os.errno.ENOENT:
+        #         self.log('Unable to locate javac in your system.')
+        #     if self.on_done is not None:
+        #         invoke(self.on_done, e.returncode)

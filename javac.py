@@ -258,7 +258,12 @@ class JavacGenerateJarCommand(JavacCompileProjectCommand):
 
     def prepare_manifest(self):
         libs = self.base_libs
-        return 'echo Class-Path: %s > Manifest' % ' '.join(libs), self.build_classes_path
+        text = 'Class-Path: %s' % ' '.join(libs)
+        path = os.path.join(self.build_classes_path, 'Manifest')
+
+        _file = open(path, 'w')
+        _file.write(text)
+        _file.close()
 
     def copy_libs(self):
         op = os.path
@@ -277,9 +282,9 @@ class JavacGenerateJarCommand(JavacCompileProjectCommand):
             self.output().clear()
             self.copy_resources()
             self.copy_libs()
+            self.prepare_manifest()
             orders = (
                 self.compile_project_order,
-                self.prepare_manifest,
                 self.pack_jar_order
             )
             self.call_new_thread_chain(orders)

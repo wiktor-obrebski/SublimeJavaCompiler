@@ -26,6 +26,7 @@ When you trying compile simple java file, you should just use *"JavaC: Compile C
         "project_name"      : "HelloWorld",
         "output_dir"        : "output",
         "sources_dir"       : "src",
+        "encoding"          : "utf-8",
         "resources"         : [],
         "libs"              : [],
         "entry_file"        : "Test/HelloWorld.java",
@@ -37,6 +38,7 @@ Options meaning:
  * *project_name* - simply project name, use as output name for generating jar file
  * *output_dir*   - where jar and classes file should be generated
  * *sources_dir*  - where *.java sources of you file are stored
+ * *encoding*     - compilation encoding, utf-8 default
  * *resources*    - list of resources files, they will be copied to you output classes directory and included in jar package (you can use asterix for file groups)
  * *libs*         - java jar external packages should be linked to you project
  * *entry_file*   - entry file where you have class with "Main" program function

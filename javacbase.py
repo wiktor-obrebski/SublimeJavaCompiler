@@ -2,8 +2,19 @@ import sublime, sublime_plugin
 import threading, subprocess, functools
 import os
 
-settings = sublime.load_settings("SublimeJavaCompiler.sublime-settings")
-sget = settings.get
+try:
+    from . import edit
+except ValueError:
+    import edit
+
+Edit = edit.Edit
+properties = None
+
+def sget(key, default):
+    global properties
+    if properties is None:
+        properties = sublime.load_settings("SublimeJavaCompiler.sublime-settings")
+    return properties.get(key, default)
 
 def invoke(callback, *args, **kwargs):
     # sublime.set_timeout gets used to send things onto the main thread
@@ -40,9 +51,8 @@ class OutputWindow(object):
         def _clear():
             outputWindow = self._getOutputWindow()
             outputWindow.set_read_only(False)
-            edit = outputWindow.begin_edit()
-            outputWindow.erase(edit, sublime.Region(0, outputWindow.size()))
-            outputWindow.end_edit(edit)
+            with Edit(outputWindow) as edit:
+                edit.erase(sublime.Region(0, outputWindow.size()))
             outputWindow.set_read_only(True)
         invoke(_clear)
 
@@ -51,19 +61,14 @@ class OutputWindow(object):
         """
         def _plain_write(outputWindow, data, new_line=True):
 
-            str = data.decode("utf-8")
+            str = data # data.decode("utf-8")
             str = str.replace('\r\n', '\n').replace('\r', '\n')
             if new_line and not str.endswith('\n'): str += '\n'
 
-            # selection_was_at_end = (len(self.output_view.sel()) == 1
-            #  and self.output_view.sel()[0]
-            #    == sublime.Region(self.output_view.size()))
             outputWindow.set_read_only(False)
-            edit = outputWindow.begin_edit()
-            a = outputWindow.insert(edit, outputWindow.size(), str)
-            #if selection_was_at_end:
+            with Edit(outputWindow) as edit:
+                edit.insert(outputWindow.size(), str)
             outputWindow.show(outputWindow.size())
-            outputWindow.end_edit(edit)
             outputWindow.set_read_only(True)
 
         text = str(data)
@@ -94,10 +99,12 @@ class CommandBase(sublime_plugin.TextCommand):
             if _callback.counter >= len(orders_list):
                 if donemsg:
                     self.write(donemsg)
-                if not has_errors and sget('hide_output_after_compilation', True):
+                if not has_errors: #and settings.get('hide_output_after_compilation', True):
                     self.output().close()
                 return
+
             cmd, working_dir = orders_list[_callback.counter]()
+
             _callback.counter += 1
 
             self.call_new_thread(cmd, _callback, working_dir)
@@ -144,6 +151,7 @@ class JavaCThread(threading.Thread):
                 shell = os.name == 'nt'
                 if self.working_dir != '':
                     os.chdir(self.working_dir)
+
                 proc = subprocess.Popen(self.cmd,
                     shell=shell,
                     universal_newlines=True,
@@ -161,7 +169,7 @@ class JavaCThread(threading.Thread):
                 if self.on_done is not None:
                     invoke(self.on_done, has_errors)
 
-        except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError as e:
             if self.on_done is not None:
                 invoke(self.on_done, e.returncode)
         # except OSError as e:

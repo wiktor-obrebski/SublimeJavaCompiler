@@ -1,10 +1,14 @@
 import sublime
-import javacbase
 import os, json
 import shutil
 import glob
-from javacbase import sget
 
+try:
+    from . import javacbase
+except ValueError:
+    import javacbase
+
+sget = javacbase.sget
 project_config_filename = "settings.sublime-javac"
 
 class JavacCompileProjectCommand(javacbase.CommandBase):

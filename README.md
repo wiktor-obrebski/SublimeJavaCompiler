@@ -1,4 +1,4 @@
-# Sublime Text 2 Plugin: Javac
+# Sublime Text Plugin: Javac
 
 ## Basic
 
@@ -14,7 +14,7 @@ This plugin adds the following commands to sublime Command Palette:
 
 ## Installation
 
-Move to you "Sublime 2 Text" packages folder and clone this repository to it:
+Move to you "Sublime Text" packages folder and clone this repository to it:
 
     git clone git@github.com:psychowico/SublimeJavaCompiler.git
 

@@ -176,7 +176,7 @@ class JavacCompileAndRunProjectCommand(JavacCompileProjectCommand):
         self.write("\n------------Running application------------")
         self.write("")
 
-        return java, cwd
+        return java, cwd, True
 
     def _run(self, edit):
         self.view.run_command('save')
@@ -312,7 +312,7 @@ class JavacGenerateAndRunJarCommand(JavacGenerateJarCommand):
         self.write("\n------------Running application------------")
         self.write("")
 
-        return java, cwd
+        return java, cwd, True
 
     def _run(self, edit):
         self.view.run_command('save')

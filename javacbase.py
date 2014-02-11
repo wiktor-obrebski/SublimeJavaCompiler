@@ -103,19 +103,24 @@ class CommandBase(sublime_plugin.TextCommand):
                     self.output().close()
                 return
 
-            cmd, working_dir = orders_list[_callback.counter]()
+            orders_tuple = orders_list[_callback.counter]()
+            try:
+                cmd, working_dir, in_new_window = orders_tuple
+            except ValueError:
+                cmd, working_dir = orders_tuple
+                in_new_window = False
 
             _callback.counter += 1
 
-            self.call_new_thread(cmd, _callback, working_dir)
+            self.call_new_thread(cmd, _callback, working_dir, in_new_window)
 
         _callback.counter = 0
         _callback(False)
 
 
 
-    def call_new_thread(self, cmd, on_done=None, working_dir="."):
-        thread = JavaCThread(cmd, on_done, self.write, working_dir)
+    def call_new_thread(self, cmd, on_done=None, working_dir=".", in_new_window = False):
+        thread = JavaCThread(cmd, on_done, self.write, working_dir, in_new_window)
         thread.start()
 
 
@@ -126,7 +131,7 @@ class JavaCThread(threading.Thread):
     """ Wrapper for calling externall application in thread for this plugin.
     first argument is application path, second (on_done) - callback, with one argument (has_errors).
     """
-    def __init__(self, cmd, on_done = None, out_method = None, working_dir = ".", **kwargs):
+    def __init__(self, cmd, on_done = None, out_method = None, working_dir = ".", in_new_window = False, **kwargs):
         threading.Thread.__init__(self)
         if working_dir is None or working_dir == '':
             working_dir = '.'
@@ -135,6 +140,7 @@ class JavaCThread(threading.Thread):
         self.working_dir = working_dir
         self.kwargs = kwargs
         self.out_method = out_method
+        self.in_new_window = in_new_window
 
     def log(self, text):
         if self.out_method is None: return
@@ -152,11 +158,16 @@ class JavaCThread(threading.Thread):
                 if self.working_dir != '':
                     os.chdir(self.working_dir)
 
+                _creationflags = 0
+                if self.in_new_window and os.name == 'nt':
+                    _creationflags=subprocess.CREATE_NEW_CONSOLE
+
                 proc = subprocess.Popen(self.cmd,
                     shell=shell,
                     universal_newlines=True,
                     stderr=subprocess.STDOUT,
-                    stdout=subprocess.PIPE
+                    stdout=subprocess.PIPE,
+                    creationflags=_creationflags
                 )
 
                 for line in iter(proc.stdout.readline, ''):

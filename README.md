@@ -1,3 +1,5 @@
+###### I am not have a time to maintaining this project anymore. Feel free to fork and continue - or just create some pull-request, I am still here.
+
 # Sublime Text Plugin: Javac
 
 ## Basic
